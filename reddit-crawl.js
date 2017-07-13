@@ -3,28 +3,46 @@ var mysql = require('promise-mysql');
 var RedditAPI = require('./reddit');
 
 function getSubreddits() {
-    return request(/* fill in the URL, it's always the same */)
+    return request('https://www.reddit.com/.json')
         .then(response => {
-            // Parse response as JSON and store in variable called result
-            var response; // continue this line
+            var result = JSON.parse(response);
+           
+
 
             // Use .map to return a list of subreddit names (strings) only
-            return response.data.children.map(/* write a function */)
+            return result.data.children.map(function(value){
+                return (value.data.subreddit);
+            });
         });
 }
 
 function getPostsForSubreddit(subredditName) {
-    return request(/* fill in the URL, it will be based on subredditName */)
+    return request('https://www.reddit.com/r/' + subredditName + '.json?limit=50')
         .then(
             response => {
                 // Parse the response as JSON and store in variable called result
-                var response; // continue this line
-
-
-                return response.data.children
-                    .filter(/* write a function */) // Use .filter to remove self-posts
-                    .map(/* write a function */) // Use .map to return title/url/user objects only
-
+                var result = JSON.parse(response); // continue this line
+                
+                var mapped = result.data.children
+                    .filter(response => {
+                        if (response.data.is_self === false){
+                            return response.data;
+                        }
+                        else {
+                            return false;
+                        }
+                    }) // Use .filter to remove self-posts
+                    .map(function(value){
+                       var newObj = {
+                           title: value.data.title,
+                           user: value.data.author,
+                           url: value.data.url
+                       };
+                        return newObj;
+                    
+                
+                    } ); // Use .map to return title/url/user objects only
+                     return mapped;
             }
         );
 }
@@ -97,4 +115,6 @@ function crawl() {
                     });
             });
         });
+            
 }
+crawl();

@@ -135,7 +135,7 @@ class RedditAPI {
                return newArr;
                 });
                 
-                console.log(mapped);
+                return (mapped);
             }
                 
                 );
