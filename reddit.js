@@ -50,6 +50,11 @@ class RedditAPI {
     }
     
     createPost(post) {
+        if (!post.subredditId){
+            throw new Error('Could not find subreddit Id');
+            
+        }
+        else{
         return this.conn.query(
             `
             INSERT INTO posts (userId, title, url, createdAt, updatedAt, subredditId)
@@ -58,17 +63,11 @@ class RedditAPI {
         )
             .then(result => {
                 return result.insertId;
-            })
-            .catch(error => {
-                if (!post.subredditId){
-                    throw new Error('Could not find subreddit Id');
-                }
-                else{
-                    throw error;
-                }
             });
+           
+            
     }
-
+}
     getAllPosts() {
         /*
         strings delimited with ` are an ES2015 feature called "template strings".
@@ -84,7 +83,7 @@ class RedditAPI {
             SELECT posts.id AS thePostId,
             title,
             url,
-            userId,
+            posts.userId AS postUserId,
             posts.createdAt AS postCreate , 
             posts.updatedAt AS postUpdate,
             username,
@@ -94,12 +93,16 @@ class RedditAPI {
             name,
             description,
             subreddits.createdAt AS subredditCreate,
-            subreddits.updatedAt AS subredditUpdate
+            subreddits.updatedAt AS subredditUpdate,
+            SUM(voteDirection) AS voteScore
             FROM posts JOIN users
             ON users.id = posts.userId
             JOIN subreddits
             ON subreddits.id = posts.subredditId
-            ORDER BY posts.createdAt DESC
+            LEFT JOIN votes
+            ON votes.postId = posts.id
+            GROUP BY votes.postId
+            ORDER BY voteScore DESC
             LIMIT 25`
             
         )
@@ -110,7 +113,7 @@ class RedditAPI {
                         title: value.title,
                         url: value.url,
                         user: {
-                            id: value.userId,
+                            id: value.postUserId,
                             username: value.username,  
                             createdAt: value.userCreate,
                             updatedAt: value.userUpdate
@@ -123,8 +126,10 @@ class RedditAPI {
                             updatedAt: value.subredditUpdate
                             
                         },
+                        voteScore: value.voteScore,
                         createdAt: value.postCreate,
                         updatedAt: value.postUpdate
+                        
                         
                };
                return newArr;
@@ -144,7 +149,22 @@ class RedditAPI {
             `
             );
     }
-    
+    createVote(vote){
+        if(vote.voteDirection > 1 || vote.voteDirection < -1){
+            throw new Error('invalid vote value');
+            }
+        else{
+            return this.conn.query(
+                `INSERT INTO votes SET postId=?, userId=?, voteDirection=?, createdAt=NOW(), updatedAt=NOW()
+                 ON DUPLICATE KEY UPDATE voteDirection=?, updatedAt=NOW();`,
+                 [vote.postId, vote.userId, vote.voteDirection, vote.voteDirection]
+                )
+                .then(result => {
+                    return result.insertId;
+                });
+           
+    }
+    }
 }
 
 module.exports = RedditAPI;

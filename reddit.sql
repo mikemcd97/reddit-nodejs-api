@@ -39,3 +39,17 @@ ADD subredditId INT
 ALTER TABLE posts
 ADD FOREIGN KEY (subredditId) 
 REFERENCES subreddits (id);
+
+--This creates a votes table.
+CREATE TABLE votes(
+  userId INT,
+  postId INT,
+  voteDirection TINYINT,
+  createdAt DATETIME NOT NULL,
+  updatedAt DATETIME NOT NULL,
+  PRIMARY KEY (userId, postId),
+  KEY userId (userId), 
+  KEY postId (postId), 
+  FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE, 
+  FOREIGN KEY (postId) REFERENCES posts (id) ON DELETE CASCADE 
+);
